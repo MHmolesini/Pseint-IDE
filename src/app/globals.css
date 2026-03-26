@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #111111;
+  --foreground: #D1D5DB;
+  --accent: #E8875A;
+  --accent-muted: #D4A06A;
+  --surface: #1A1A1A;
+  --surface-hover: #2A2A2A;
+  --border: #2D2D2D;
 }
 
 @theme inline {
@@ -12,15 +17,115 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+/* Monaco Editor - línea de ejecución actual */
+.current-execution-line {
+  background-color: rgba(232, 135, 90, 0.15) !important;
+  border-left: 3px solid #E8875A !important;
+}
+
+.current-execution-glyph {
+  background-color: #E8875A;
+  border-radius: 50%;
+  width: 8px !important;
+  height: 8px !important;
+  margin-left: 4px;
+  margin-top: 6px;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141414;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3A3A3A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4A4A4A;
+}
+
+/* Animaciones suaves */
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(232, 135, 90, 0.3);
+  color: #fff;
+}
+
+/* ============================================================
+   Resize Handles — Bordes arrastrables estilo VS Code
+   ============================================================ */
+
+.resize-handle {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+/* Handle horizontal (divide izquierda/derecha) */
+.resize-handle-horizontal {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.resize-handle-horizontal::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -3px;
+  right: -3px;
+  bottom: 0;
+  z-index: 21;
+}
+
+/* Handle vertical (divide arriba/abajo) */
+.resize-handle-vertical {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.resize-handle-vertical::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -3px;
+  bottom: -3px;
+  right: 0;
+  z-index: 21;
+}
+
+/* Hover: línea naranja sutil */
+.resize-handle:hover {
+  background-color: rgba(232, 135, 90, 0.4);
+}
+
+/* Active / Dragging: naranja sólido */
+.resize-handle-active,
+.resize-handle:active {
+  background-color: rgba(232, 135, 90, 0.7) !important;
+}
+
+/* Prevenir transiciones durante drag para fluidez */
+body.is-resizing * {
+  transition: none !important;
 }
