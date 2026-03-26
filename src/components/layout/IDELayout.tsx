@@ -36,11 +36,32 @@ const EditorPanel = dynamic(() => import('@/components/editor/EditorPanel'), {
   ),
 });
 
-type BottomTab = 'terminal' | 'flowchart' | 'help';
+type BottomTab = 'terminal' | 'flowchart' | 'help' | 'variables';
 
 export default function IDELayout() {
   const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
   const interpreterRef = useRef<Interpreter | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  // Detectar mobile y orientación
+  useEffect(() => {
+    const checkMobile = () => {
+      const check = window.innerWidth <= 768;
+      if (check) {
+        setIsMobile(true);
+        // Cerrar sidebar por defecto en mobile si es el primer cambio
+        if (!isMobile) sidebar.close();
+      } else {
+        setIsMobile(false);
+      }
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // --- Paneles redimensionables ---
   const sidebar = useResizable({
@@ -189,11 +210,15 @@ export default function IDELayout() {
               P
             </div>
             <span className="text-sm font-semibold text-gray-300">
-              PSeInt <span className="text-orange-400">IDE</span>
+              PSeInt {!isMobile && <span className="text-orange-400">IDE</span>}
             </span>
           </div>
-          <span className="text-xs text-gray-600">|</span>
-          <span className="text-xs text-gray-500">UNSAM</span>
+          {!isMobile && (
+            <>
+              <span className="text-xs text-gray-600">|</span>
+              <span className="text-xs text-gray-500">UNSAM</span>
+            </>
+          )}
         </div>
 
         {/* Run controls */}
@@ -255,21 +280,29 @@ export default function IDELayout() {
         </div>
       </header>
 
+      {/* Mobile Overlay */}
+      {isMobile && sidebar.isOpen && (
+        <div 
+          className="mobile-overlay is-visible" 
+          onClick={sidebar.close}
+        />
+      )}
+
       {/* ==================== MAIN CONTENT ==================== */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
 
         {/* ---- SIDEBAR ---- */}
-        {sidebar.isOpen && (
-          <div
-            className="flex-shrink-0 overflow-hidden"
-            style={{ width: sidebar.size }}
-          >
-            <FileExplorer />
-          </div>
-        )}
+        <div
+          className={`${
+            isMobile ? 'mobile-sidebar-drawer' : 'flex-shrink-0'
+          } overflow-hidden ${isMobile && sidebar.isOpen ? 'is-open' : ''}`}
+          style={{ width: isMobile ? '280px' : sidebar.size }}
+        >
+          <FileExplorer />
+        </div>
 
-        {/* Resize handle: Sidebar ↔ Editor */}
-        <div {...sidebar.handleProps} />
+        {/* Resize handle: Sidebar ↔ Editor (Solo desktop) */}
+        {!isMobile && <div {...sidebar.handleProps} />}
 
         {/* ---- CENTER + BOTTOM ---- */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -329,8 +362,8 @@ export default function IDELayout() {
               {/* Resize handle: Editor ↔ Variables */}
               <div {...rightPanel.handleProps} />
 
-              {/* Right panel (Variables) */}
-              {rightPanel.isOpen && (
+              {/* Right panel (Variables) - Solo desktop */}
+              {!isMobile && rightPanel.isOpen && (
                 <div
                   className="flex-shrink-0 overflow-hidden"
                   style={{ width: rightPanel.size }}
@@ -340,8 +373,8 @@ export default function IDELayout() {
               )}
             </div>
 
-            {/* Resize handle: Editor ↔ Bottom panel */}
-            <div {...bottomPanel.handleProps} />
+            {/* Resize handle: Editor ↔ Bottom panel (Solo si no es portrait extremo o desktop) */}
+            {!isMobile && <div {...bottomPanel.handleProps} />}
 
             {/* Bottom panel */}
             {bottomPanel.isOpen && (
@@ -350,10 +383,10 @@ export default function IDELayout() {
                 style={{ height: bottomPanel.size }}
               >
                 {/* Bottom tabs */}
-                <div className="flex items-center bg-[#1A1A1A] border-b border-gray-800 h-8 flex-shrink-0">
+                <div className="flex items-center bg-[#1A1A1A] border-b border-gray-800 h-8 flex-shrink-0 overflow-x-auto scrollbar-none">
                   <button
                     onClick={() => setBottomTab('terminal')}
-                    className={`px-4 h-full text-xs transition-colors ${
+                    className={`px-4 h-full text-xs transition-colors whitespace-nowrap ${
                       bottomTab === 'terminal'
                         ? 'text-orange-400 border-b-2 border-orange-400'
                         : 'text-gray-500 hover:text-gray-300'
@@ -363,7 +396,7 @@ export default function IDELayout() {
                   </button>
                   <button
                     onClick={() => setBottomTab('flowchart')}
-                    className={`px-4 h-full text-xs transition-colors ${
+                    className={`px-4 h-full text-xs transition-colors whitespace-nowrap ${
                       bottomTab === 'flowchart'
                         ? 'text-orange-400 border-b-2 border-orange-400'
                         : 'text-gray-500 hover:text-gray-300'
@@ -373,7 +406,7 @@ export default function IDELayout() {
                   </button>
                   <button
                     onClick={() => setBottomTab('help')}
-                    className={`px-4 h-full text-xs transition-colors ${
+                    className={`px-4 h-full text-xs transition-colors whitespace-nowrap ${
                       bottomTab === 'help'
                         ? 'text-orange-400 border-b-2 border-orange-400'
                         : 'text-gray-500 hover:text-gray-300'
@@ -381,15 +414,29 @@ export default function IDELayout() {
                   >
                     Ayuda Rápida
                   </button>
+                  {isMobile && (
+                    <button
+                      onClick={() => setBottomTab('variables')}
+                      className={`px-4 h-full text-xs transition-colors whitespace-nowrap ${
+                        bottomTab === 'variables'
+                          ? 'text-orange-400 border-b-2 border-orange-400'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Variables
+                    </button>
+                  )}
                   <div className="flex-1" />
-                  <button
-                    onClick={rightPanel.toggle}
-                    className={`px-3 h-full text-xs transition-colors ${
-                      rightPanel.isOpen ? 'text-orange-400' : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    Variables
-                  </button>
+                  {!isMobile && (
+                    <button
+                      onClick={rightPanel.toggle}
+                      className={`px-3 h-full text-xs transition-colors ${
+                        rightPanel.isOpen ? 'text-orange-400' : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Variables
+                    </button>
+                  )}
                   <button
                     onClick={bottomPanel.close}
                     className="px-2 h-full text-gray-500 hover:text-gray-300 transition-colors"
@@ -405,6 +452,7 @@ export default function IDELayout() {
                   {bottomTab === 'terminal' && <Terminal />}
                   {bottomTab === 'flowchart' && <FlowchartPanel />}
                   {bottomTab === 'help' && <QuickHelp />}
+                  {isMobile && bottomTab === 'variables' && <VariablePanel />}
                 </div>
               </div>
             )}
@@ -419,6 +467,9 @@ export default function IDELayout() {
                   <span className="hover:text-gray-300 transition-colors">Consola</span>
                   <span className="hover:text-gray-300 transition-colors">Diagrama</span>
                   <span className="hover:text-gray-300 transition-colors">Ayuda Rápida</span>
+                  {isMobile && (
+                    <span className="hover:text-gray-300 transition-colors">Variables</span>
+                  )}
                 </div>
               </div>
             )}

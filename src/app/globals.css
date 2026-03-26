@@ -129,3 +129,57 @@ body {
 body.is-resizing * {
   transition: none !important;
 }
+
+/* ============================================================
+   Responsive / Mobile Styles
+   ============================================================ */
+
+/* Mobile Drawer Sidebar */
+.mobile-sidebar-drawer {
+  position: absolute;
+  top: 40px; /* Debajo del header */
+  left: 0;
+  bottom: 24px; /* Encima del footer */
+  z-index: 50;
+  background: var(--background);
+  border-right: 1px solid var(--border);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-sidebar-drawer.is-open {
+  transform: translateX(0);
+}
+
+/* Overlay para cerrar el drawer al tocar fuera */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Ocultar elementos en móvil si es necesario */
+@media (max-width: 768px) {
+  .resize-handle {
+    display: none !important;
+  }
+}
+
+/* Ajustes para tablets en landscape */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .resize-handle {
+    width: 6px; /* Hacemos el área de toque un poco más grande */
+  }
+}
+
