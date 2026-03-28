@@ -292,6 +292,12 @@ export class Lexer {
     const startCol = this.column;
 
     switch (ch) {
+      case '←':
+      case '🡐':
+      case '⇐':
+        this.advance();
+        this.tokens.push({ type: TokenType.ASIGNACION, value: ch, line: this.line, column: startCol });
+        return true;
       case '<': {
         this.advance();
         if (this.peek() === '-') {
@@ -357,6 +363,7 @@ export class Lexer {
         this.tokens.push({ type: TokenType.MODULO, value: '%', line: this.line, column: startCol });
         return true;
       case '^':
+      case '↑':
         this.advance();
         this.tokens.push({ type: TokenType.POTENCIA, value: '^', line: this.line, column: startCol });
         return true;
@@ -410,7 +417,15 @@ export class Lexer {
   // ============================================================
 
   private peek(): string {
-    return this.source[this.pos] ?? '\0';
+    const ch = this.source[this.pos];
+    if (ch === undefined) return '\0';
+
+    // Manejar surrogate pairs de UTF-16
+    const code = ch.charCodeAt(0);
+    if (code >= 0xD800 && code <= 0xDBFF && this.pos + 1 < this.source.length) {
+      return ch + this.source[this.pos + 1];
+    }
+    return ch;
   }
 
   private peekNext(): string {
@@ -418,8 +433,8 @@ export class Lexer {
   }
 
   private advance(): string {
-    const ch = this.source[this.pos];
-    this.pos++;
+    const ch = this.peek();
+    this.pos += ch.length;
     this.column++;
     return ch;
   }
@@ -451,7 +466,7 @@ export class Lexer {
   private skipWhitespace(): void {
     while (!this.isAtEnd()) {
       const ch = this.peek();
-      if (ch === ' ' || ch === '\t') {
+      if (ch === ' ' || ch === '\t' || ch === '\u00A0') {
         this.advance();
       } else {
         break;

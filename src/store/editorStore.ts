@@ -10,6 +10,8 @@ export interface VirtualFile {
   content: string;
   language: 'pseint';
   isModified: boolean;
+  enunciado?: string;
+  tests?: string;
 }
 
 interface EditorState {
@@ -18,7 +20,7 @@ interface EditorState {
   activeFileId: string | null;
 
   // Acciones
-  createFile: (name: string, content?: string) => void;
+  createFile: (name: string, content?: string, enunciado?: string, tests?: string) => void;
   openFile: (id: string) => void;
   updateFileContent: (id: string, content: string) => void;
   closeFile: (id: string) => void;
@@ -46,7 +48,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   ],
   activeFileId: 'default-1',
 
-  createFile: (name, content = DEFAULT_CONTENT) => {
+  createFile: (name, content = DEFAULT_CONTENT, enunciado, tests) => {
     const id = `file-${++fileCounter}-${Date.now()}`;
     const newFile: VirtualFile = {
       id,
@@ -54,6 +56,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       content,
       language: 'pseint',
       isModified: false,
+      enunciado,
+      tests,
     };
     set((state) => ({
       files: [...state.files, newFile],

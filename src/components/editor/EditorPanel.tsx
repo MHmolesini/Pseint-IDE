@@ -16,6 +16,7 @@ import {
   pseintLanguageDefinition,
   pseintLanguageConfiguration,
 } from './pseint-language';
+import ExercisePanel from './ExercisePanel';
 
 export default function EditorPanel() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -24,6 +25,7 @@ export default function EditorPanel() {
   const updateFileContent = useEditorStore((s) => s.updateFileContent);
   const currentLine = useInterpreterStore((s) => s.currentLine);
   const status = useInterpreterStore((s) => s.status);
+  const profile = useInterpreterStore((s) => s.profile);
   const [decorations, setDecorations] = useState<string[]>([]);
 
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
@@ -267,31 +269,10 @@ export default function EditorPanel() {
     });
   }, []);
 
-  const handleMount: OnMount = useCallback((editorInstance, monaco) => {
-    editorRef.current = editorInstance;
-    monacoRef.current = monaco;
-    editorInstance.focus();
-
-    // Ejecutar diagnósticos iniciales
-    const model = editorInstance.getModel();
-    if (model) {
-      runDiagnostics(model.getValue(), monaco, model);
-    }
-  }, []);
-
-  const handleChange = useCallback(
-    (value: string | undefined) => {
-      if (activeFile && value !== undefined) {
-        updateFileContent(activeFile.id, value);
-      }
-    },
-    [activeFile, updateFileContent],
-  );
-
   // Ejecutar diagnósticos con debounce
   const runDiagnostics = useCallback(
-    (code: string, monaco: typeof MonacoTypes, model: editor.ITextModel) => {
-      const diagnostics = analyzeCode(code);
+    (code: string, monaco: typeof MonacoTypes, model: editor.ITextModel, activeProfile = profile) => {
+      const diagnostics = analyzeCode(code, activeProfile);
 
       const markers: MonacoTypes.editor.IMarkerData[] = diagnostics.map((d) => ({
         severity:
@@ -309,8 +290,30 @@ export default function EditorPanel() {
 
       monaco.editor.setModelMarkers(model, 'pseint-diagnostics', markers);
     },
-    [],
+    [profile],
   );
+
+  const handleMount: OnMount = useCallback((editorInstance, monaco) => {
+    editorRef.current = editorInstance;
+    monacoRef.current = monaco;
+    editorInstance.focus();
+
+    // Ejecutar diagnósticos iniciales
+    const model = editorInstance.getModel();
+    if (model) {
+      runDiagnostics(model.getValue(), monaco, model, profile);
+    }
+  }, [profile, runDiagnostics]);
+
+  const handleChange = useCallback(
+    (value: string | undefined) => {
+      if (activeFile && value !== undefined) {
+        updateFileContent(activeFile.id, value);
+      }
+    },
+    [activeFile, updateFileContent],
+  );
+
 
   useEffect(() => {
     if (!activeFile || !monacoRef.current || !editorRef.current) return;
@@ -318,7 +321,7 @@ export default function EditorPanel() {
     const timer = setTimeout(() => {
       const model = editorRef.current?.getModel();
       if (model && monacoRef.current) {
-        runDiagnostics(activeFile.content, monacoRef.current, model);
+        runDiagnostics(activeFile.content, monacoRef.current, model, profile);
       }
     }, 500); // debounce 500ms
 
@@ -365,40 +368,43 @@ export default function EditorPanel() {
   }
 
   return (
-    <div className="flex-1 h-full overflow-hidden">
-      <Editor
-        height="100%"
-        language={PSEINT_LANGUAGE_ID}
-        theme="pseint-dark"
-        value={activeFile.content}
-        onChange={handleChange}
-        beforeMount={handleBeforeMount}
-        onMount={handleMount}
-        options={{
-          fontSize: 14,
-          fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-          minimap: { enabled: false },
-          lineNumbers: 'on',
-          roundedSelection: true,
-          scrollBeyondLastLine: false,
-          padding: { top: 16, bottom: 16 },
-          renderLineHighlight: 'all',
-          cursorBlinking: 'smooth',
-          cursorSmoothCaretAnimation: 'on',
-          smoothScrolling: true,
-          tabSize: 4,
-          wordWrap: 'on',
-          glyphMargin: true,
-          folding: true,
-          fixedOverflowWidgets: true,
-          bracketPairColorization: { enabled: true },
-          autoClosingBrackets: 'always',
-          autoClosingQuotes: 'always',
-          autoIndent: 'full',
-          formatOnType: true,
-          suggestOnTriggerCharacters: true,
-        }}
-      />
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 h-full min-h-0">
+        <Editor
+          height="100%"
+          language={PSEINT_LANGUAGE_ID}
+          theme="pseint-dark"
+          value={activeFile.content}
+          onChange={handleChange}
+          beforeMount={handleBeforeMount}
+          onMount={handleMount}
+          options={{
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+            minimap: { enabled: false },
+            lineNumbers: 'on',
+            roundedSelection: true,
+            scrollBeyondLastLine: false,
+            padding: { top: 16, bottom: 16 },
+            renderLineHighlight: 'all',
+            cursorBlinking: 'smooth',
+            cursorSmoothCaretAnimation: 'on',
+            smoothScrolling: true,
+            tabSize: 4,
+            wordWrap: 'on',
+            glyphMargin: true,
+            folding: true,
+            fixedOverflowWidgets: true,
+            bracketPairColorization: { enabled: true },
+            autoClosingBrackets: 'always',
+            autoClosingQuotes: 'always',
+            autoIndent: 'full',
+            formatOnType: true,
+            suggestOnTriggerCharacters: true,
+          }}
+        />
+      </div>
+      <ExercisePanel />
     </div>
   );
 }

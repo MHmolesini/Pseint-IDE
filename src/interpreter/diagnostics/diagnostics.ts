@@ -9,6 +9,7 @@ import { Lexer, LexerError } from '../lexer/Lexer';
 import { Parser } from '../parser/Parser';
 import { ParseError } from '../parser/errors';
 import { TokenType } from '../lexer/Token';
+import { ProfileConfig, DEFAULT_PROFILE } from '../profiles/ProfileConfig';
 import type { Token } from '../lexer/Token';
 
 export interface Diagnostic {
@@ -23,7 +24,7 @@ export interface Diagnostic {
  * Ejecuta análisis léxico, sintáctico y verificaciones adicionales.
  * Retorna una lista de diagnósticos para mostrar en el editor.
  */
-export function analyzeCode(source: string): Diagnostic[] {
+export function analyzeCode(source: string, profile: ProfileConfig = DEFAULT_PROFILE): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
 
   if (!source.trim()) return diagnostics;
@@ -52,7 +53,7 @@ export function analyzeCode(source: string): Diagnostic[] {
   // 2. Análisis sintáctico
   // ============================================================
   try {
-    const parser = new Parser(tokens);
+    const parser = new Parser(tokens, profile);
     parser.parse();
   } catch (error) {
     if (error instanceof ParseError) {
@@ -117,7 +118,7 @@ export function analyzeCode(source: string): Diagnostic[] {
     // Definir sin Como
     if (t.type === TokenType.DEFINIR) {
       let foundComo = false;
-      for (let j = i + 1; j < filteredTokens.length && j < i + 10; j++) {
+      for (let j = i + 1; j < filteredTokens.length && j < i + 50; j++) {
         if (filteredTokens[j].type === TokenType.COMO) {
           foundComo = true;
           break;
@@ -140,7 +141,7 @@ export function analyzeCode(source: string): Diagnostic[] {
     if (t.type === TokenType.SI) {
       let foundEntonces = false;
       let foundFinSi = false;
-      for (let j = i + 1; j < filteredTokens.length && j < i + 30; j++) {
+      for (let j = i + 1; j < filteredTokens.length && j < i + 50; j++) {
         if (filteredTokens[j].type === TokenType.ENTONCES) {
           foundEntonces = true;
           break;
@@ -253,7 +254,7 @@ export function analyzeCode(source: string): Diagnostic[] {
           column: token.column,
           endColumn: token.column + token.value.length,
           message: `La variable "${token.value}" se usa sin haber sido definida con "Definir" previamente.`,
-          severity: 'warning',
+          severity: profile.requireVariableDeclaration ? 'error' : 'warning',
         });
       }
     }

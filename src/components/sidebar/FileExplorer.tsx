@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { processPSeIntFile, isPSeIntFile, isProtectedFile } from '@/utils/psx-utils';
 
 export default function FileExplorer() {
   const files = useEditorStore((s) => s.files);
@@ -19,6 +20,48 @@ export default function FileExplorer() {
   const [newFileName, setNewFileName] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [isOver, setIsOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    for (const file of droppedFiles) {
+      if (isPSeIntFile(file.name)) {
+        try {
+          const buffer = new Uint8Array(await file.arrayBuffer());
+          let password = '';
+
+          if (isProtectedFile(buffer)) {
+            password = window.prompt(`El archivo "${file.name}" está protegido. Ingresá la contraseña:`, 'IRP') || '';
+            if (!password) continue;
+          }
+
+          const result = await processPSeIntFile(file, password);
+          createFile(result.name, result.content, result.enunciado, result.tests);
+        } catch (error: any) {
+          if (error.message === 'PASSWORD_INCORRECT') {
+            alert('Contraseña incorrecta o archivo dañado.');
+          } else if (error.message === 'PASSWORD_REQUIRED') {
+            alert('Se requiere una contraseña para abrir este archivo.');
+          } else {
+            console.error(error);
+            alert(`Error al procesar el archivo: ${error.message}`);
+          }
+        }
+      }
+    }
+  };
 
   const handleCreate = () => {
     if (newFileName.trim()) {
@@ -37,7 +80,12 @@ export default function FileExplorer() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#1E1E1E] text-gray-300">
+    <div 
+      className={`h-full flex flex-col bg-[#1E1E1E] text-gray-300 transition-all ${isOver ? 'ring-2 ring-orange-500/50 bg-orange-500/5' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">

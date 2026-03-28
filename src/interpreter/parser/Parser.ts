@@ -7,6 +7,7 @@
 // ============================================================
 
 import { Token, TokenType } from '../lexer/Token';
+import { ProfileConfig, DEFAULT_PROFILE } from '../profiles/ProfileConfig';
 import { ParseError } from './errors';
 import type {
   ProgramNode,
@@ -36,10 +37,12 @@ import type {
 export class Parser {
   private tokens: Token[];
   private pos: number = 0;
+  private profile: ProfileConfig;
 
-  constructor(tokens: Token[]) {
+  constructor(tokens: Token[], profile: ProfileConfig = DEFAULT_PROFILE) {
     // Filtrar newlines — PSeInt no los usa como separadores significativos
     this.tokens = tokens.filter((t) => t.type !== TokenType.NUEVA_LINEA);
+    this.profile = profile;
   }
 
   // ============================================================
@@ -77,11 +80,11 @@ export class Parser {
   private parseProgram(): ProgramNode {
     const token = this.expect(TokenType.PROCESO, 'Se esperaba "Proceso" al inicio del programa');
     const nameToken = this.expect(TokenType.IDENTIFICADOR, 'Se esperaba el nombre del proceso');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const body = this.parseBlock(TokenType.FIN_PROCESO);
     this.expect(TokenType.FIN_PROCESO, 'Se esperaba "FinProceso" al final del programa');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     return {
       kind: 'Program',
@@ -126,12 +129,12 @@ export class Parser {
       }
       this.expect(TokenType.PARENTESIS_DER, 'Se esperaba ")"');
     }
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const endToken = isFunction ? TokenType.FIN_FUNCION : TokenType.FIN_SUBPROCESO;
     const body = this.parseBlock(endToken);
     this.expect(endToken, `Se esperaba "${isFunction ? 'FinFuncion' : 'FinSubProceso'}"`);
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     return {
       kind: 'SubProcess',
@@ -234,7 +237,7 @@ export class Parser {
       );
     }
 
-    this.consumeOptionalSemicolon();
+    this.expectSemicolon();
 
     return {
       kind: 'Define',
@@ -265,7 +268,7 @@ export class Parser {
       arrays.push({ name: name.value, dimensions });
     } while (this.match(TokenType.COMA));
 
-    this.consumeOptionalSemicolon();
+    this.expectSemicolon();
 
     return {
       kind: 'Dimension',
@@ -288,7 +291,7 @@ export class Parser {
       });
     } while (this.match(TokenType.COMA));
 
-    this.consumeOptionalSemicolon();
+    this.expectSemicolon();
 
     return {
       kind: 'Read',
@@ -308,7 +311,7 @@ export class Parser {
     } while (this.match(TokenType.COMA));
 
     // TODO: manejar "Sin Saltar"
-    this.consumeOptionalSemicolon();
+    this.expectSemicolon();
 
     return {
       kind: 'Write',
@@ -323,18 +326,18 @@ export class Parser {
     const token = this.advance(); // SI
     const condition = this.parseExpression();
     this.expect(TokenType.ENTONCES, 'Se esperaba "Entonces" después de la condición');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const thenBody = this.parseBlock(TokenType.SINO, TokenType.FIN_SI);
 
     let elseBody: Statement[] = [];
     if (this.match(TokenType.SINO)) {
-      this.consumeOptionalSemicolon();
+      this.matchOptionalSemicolon();
       elseBody = this.parseBlock(TokenType.FIN_SI);
     }
 
     this.expect(TokenType.FIN_SI, 'Se esperaba "FinSi"');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     return {
       kind: 'If',
@@ -350,7 +353,7 @@ export class Parser {
     const token = this.advance(); // SEGUN
     const expression = this.parseExpression();
     this.expect(TokenType.HACER, 'Se esperaba "Hacer" después de la expresión de Segun');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const cases: SwitchCase[] = [];
     let defaultCase: Statement[] = [];
@@ -359,7 +362,7 @@ export class Parser {
       if (this.check(TokenType.DE_OTRO_MODO)) {
         this.advance();
         this.match(TokenType.DOS_PUNTOS);
-        this.consumeOptionalSemicolon();
+        this.matchOptionalSemicolon();
         defaultCase = this.parseBlock(TokenType.FIN_SEGUN);
         break;
       }
@@ -371,7 +374,7 @@ export class Parser {
       } while (this.match(TokenType.COMA));
 
       this.expect(TokenType.DOS_PUNTOS, 'Se esperaba ":" después del valor del caso');
-      this.consumeOptionalSemicolon();
+      this.matchOptionalSemicolon();
 
       const body = this.parseBlock(TokenType.FIN_SEGUN, TokenType.DE_OTRO_MODO);
       // Check if next is a case value (number, string, identifier) - peek
@@ -380,7 +383,7 @@ export class Parser {
     }
 
     this.expect(TokenType.FIN_SEGUN, 'Se esperaba "FinSegun"');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     return {
       kind: 'Switch',
@@ -396,11 +399,11 @@ export class Parser {
     const token = this.advance(); // MIENTRAS
     const condition = this.parseExpression();
     this.match(TokenType.HACER); // opcional
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const body = this.parseBlock(TokenType.FIN_MIENTRAS);
     this.expect(TokenType.FIN_MIENTRAS, 'Se esperaba "FinMientras"');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     return {
       kind: 'While',
@@ -413,12 +416,12 @@ export class Parser {
   // ---- Repetir ----
   private parseRepeat(): RepeatStatement {
     const token = this.advance(); // REPETIR
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const body = this.parseBlock(TokenType.HASTA_QUE);
     this.expect(TokenType.HASTA_QUE, 'Se esperaba "Hasta Que"');
     const condition = this.parseExpression();
-    this.consumeOptionalSemicolon();
+    this.expectSemicolon();
 
     return {
       kind: 'Repeat',
@@ -444,11 +447,11 @@ export class Parser {
     }
 
     this.match(TokenType.HACER); // opcional
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     const body = this.parseBlock(TokenType.FIN_PARA);
     this.expect(TokenType.FIN_PARA, 'Se esperaba "FinPara"');
-    this.consumeOptionalSemicolon();
+    this.matchOptionalSemicolon();
 
     return {
       kind: 'For',
@@ -469,7 +472,7 @@ export class Parser {
     // Asignación: variable <- expresión
     if (this.match(TokenType.ASIGNACION)) {
       const value = this.parseExpression();
-      this.consumeOptionalSemicolon();
+      this.expectSemicolon();
 
       return {
         kind: 'Assignment',
@@ -483,7 +486,7 @@ export class Parser {
     if (this.check(TokenType.IGUAL)) {
       this.advance();
       const value = this.parseExpression();
-      this.consumeOptionalSemicolon();
+      this.expectSemicolon();
 
       return {
         kind: 'Assignment',
@@ -511,7 +514,7 @@ export class Parser {
       // Si sigue <-, es asignación de arreglo
       if (this.match(TokenType.ASIGNACION)) {
         const value = this.parseExpression();
-        this.consumeOptionalSemicolon();
+        this.expectSemicolon();
         return {
           kind: 'Assignment',
           target: { kind: 'ArrayAccess', array: token.value, indices: args, position: pos },
@@ -521,7 +524,7 @@ export class Parser {
       }
 
       // Si no, es llamada a función como statement
-      this.consumeOptionalSemicolon();
+      this.expectSemicolon();
       const call: FunctionCallExpression = {
         kind: 'FunctionCall',
         name: token.value,
@@ -532,7 +535,7 @@ export class Parser {
     }
 
     // Llamada a función sin paréntesis (raro pero posible)
-    this.consumeOptionalSemicolon();
+    this.expectSemicolon();
     const call: FunctionCallExpression = {
       kind: 'FunctionCall',
       name: token.value,
@@ -840,7 +843,15 @@ export class Parser {
     throw new ParseError(message, token.line, token.column);
   }
 
-  private consumeOptionalSemicolon(): void {
+  private expectSemicolon(): void {
+    if (this.profile.requireSemicolons) {
+      this.expect(TokenType.PUNTO_Y_COMA, 'Se esperaba ";" al final de la instrucción');
+    } else {
+      this.match(TokenType.PUNTO_Y_COMA);
+    }
+  }
+
+  private matchOptionalSemicolon(): void {
     this.match(TokenType.PUNTO_Y_COMA);
   }
 }
