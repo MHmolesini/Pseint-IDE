@@ -80,6 +80,7 @@ body {
   z-index: 20;
   flex-shrink: 0;
   transition: background-color 0.15s ease;
+  touch-action: none; /* Prevenir scroll al arrastrar */
 }
 
 /* Handle horizontal (divide izquierda/derecha) */
@@ -92,8 +93,8 @@ body {
   content: '';
   position: absolute;
   top: 0;
-  left: -3px;
-  right: -3px;
+  left: -6px; /* Aumentado de -3px para mejor toque */
+  right: -6px;
   bottom: 0;
   z-index: 21;
 }
@@ -108,8 +109,8 @@ body {
   content: '';
   position: absolute;
   left: 0;
-  top: -3px;
-  bottom: -3px;
+  top: -6px; /* Aumentado de -3px para mejor toque */
+  bottom: -6px;
   right: 0;
   z-index: 21;
 }
@@ -169,17 +170,29 @@ body.is-resizing * {
   pointer-events: auto;
 }
 
-/* Ocultar elementos en móvil si es necesario */
-@media (max-width: 768px) {
-  .resize-handle {
-    display: none !important;
+/* En móvil y tablet, los handles son un poco más gruesos y siempre visibles */
+@media (max-width: 1024px) {
+  .resize-handle-horizontal {
+    width: 6px;
+  }
+  .resize-handle-vertical {
+    height: 6px;
+  }
+  
+  /* Asegurar que el layout no se rompa por desbordamiento de texto */
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
-/* Ajustes para tablets en landscape */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .resize-handle {
-    width: 6px; /* Hacemos el área de toque un poco más grande */
-  }
+/* Fix para el problema de "Finalizado" que tapa el contenido: 
+   Asegurar que el footer sea siempre flex-shrink-0 y el contenedor sea h-screen */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 

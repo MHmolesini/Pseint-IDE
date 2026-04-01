@@ -72,7 +72,7 @@ export default function Terminal() {
       {/* Output */}
       <div
         ref={outputRef}
-        className="flex-1 overflow-y-auto p-3 space-y-0.5"
+        className="flex-1 overflow-y-auto p-3 space-y-0.5 min-h-0"
       >
         {consoleMessages.length === 0 ? (
           <div className="text-gray-600 text-xs italic">
@@ -82,7 +82,7 @@ export default function Terminal() {
           consoleMessages.map((msg, i) => (
             <div
               key={i}
-              className={`leading-relaxed ${
+              className={`leading-relaxed break-words whitespace-pre-wrap ${
                 msg.type === 'output'
                   ? 'text-gray-300'
                   : msg.type === 'input'

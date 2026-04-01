@@ -201,7 +201,7 @@ export default function IDELayout() {
   }, [getActiveFile, reset, clearErrors, clearConsole, setStatus, setCurrentLine, addConsoleMessage, addError, setWaitingForInput, updateVariable, bottomPanel]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#111111] text-gray-300 overflow-hidden select-none">
+    <div className="h-[100dvh] w-screen flex flex-col bg-[#111111] text-gray-300 overflow-hidden select-none">
       {/* ==================== TITLE BAR ==================== */}
       <header className="flex items-center justify-between h-10 px-4 bg-[#1A1A1A] border-b border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -301,8 +301,8 @@ export default function IDELayout() {
           <FileExplorer />
         </div>
 
-        {/* Resize handle: Sidebar ↔ Editor (Solo desktop) */}
-        {!isMobile && <div {...sidebar.handleProps} />}
+        {/* Resize handle: Sidebar ↔ Editor */}
+        <div {...sidebar.handleProps} />
 
         {/* ---- CENTER + BOTTOM ---- */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -373,14 +373,14 @@ export default function IDELayout() {
               )}
             </div>
 
-            {/* Resize handle: Editor ↔ Bottom panel (Solo si no es portrait extremo o desktop) */}
-            {!isMobile && <div {...bottomPanel.handleProps} />}
+            {/* Resize handle: Editor ↔ Bottom panel */}
+            <div {...bottomPanel.handleProps} />
 
             {/* Bottom panel */}
             {bottomPanel.isOpen && (
               <div
                 className="flex-shrink-0 overflow-hidden"
-                style={{ height: bottomPanel.size }}
+                style={{ height: bottomPanel.size, maxHeight: isMobile ? '50vh' : '80vh' }}
               >
                 {/* Bottom tabs */}
                 <div className="flex items-center bg-[#1A1A1A] border-b border-gray-800 h-8 flex-shrink-0 overflow-x-auto scrollbar-none">
@@ -480,17 +480,19 @@ export default function IDELayout() {
       {/* ==================== STATUS BAR ==================== */}
       <footer className="flex items-center justify-between h-6 px-4 bg-[#1A1A1A] border-t border-gray-800 flex-shrink-0 text-xs text-gray-500">
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1">
-            {status === 'idle' && <span className="w-2 h-2 rounded-full bg-gray-500" />}
-            {status === 'running' && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />}
-            {status === 'paused' && <span className="w-2 h-2 rounded-full bg-yellow-400" />}
-            {status === 'finished' && <span className="w-2 h-2 rounded-full bg-green-400" />}
-            {status === 'error' && <span className="w-2 h-2 rounded-full bg-red-400" />}
-            {status === 'idle' && 'Listo'}
-            {status === 'running' && 'Ejecutando...'}
-            {status === 'paused' && 'Pausado'}
-            {status === 'finished' && 'Finalizado'}
-            {status === 'error' && 'Error'}
+          <span className="flex items-center gap-1 min-w-0 truncate">
+            {status === 'idle' && <span className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" />}
+            {status === 'running' && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse flex-shrink-0" />}
+            {status === 'paused' && <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />}
+            {status === 'finished' && <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />}
+            {status === 'error' && <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />}
+            <span className="truncate">
+              {status === 'idle' && 'Listo'}
+              {status === 'running' && 'Ejecutando...'}
+              {status === 'paused' && 'Pausado'}
+              {status === 'finished' && 'Finalizado'}
+              {status === 'error' && 'Error'}
+            </span>
           </span>
         </div>
         <div className="flex items-center gap-4">
